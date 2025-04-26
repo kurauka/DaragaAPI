@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 from fastapi.middleware.cors import CORSMiddleware
 import firebase_admin
 from firebase_admin import credentials, firestore
-import africastalking
+from twilio.rest import Client  # <-- Twilio import
 
 # Load environment variables
 load_dotenv()
@@ -20,7 +20,7 @@ app = FastAPI()
 # Enable CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins (restrict in production)
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -33,25 +33,25 @@ PASSKEY = os.getenv("PASSKEY")
 SHORTCODE = os.getenv("SHORTCODE")
 CALLBACK_URL = os.getenv("CALLBACK_URL")
 
-# Africa's Talking SMS Credentials
-AT_USERNAME = os.getenv("AT_USERNAME")
-AT_API_KEY = os.getenv("AT_API_KEY")
+# Twilio Credentials
+TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID")
+TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN")
+TWILIO_PHONE_NUMBER = os.getenv("TWILIO_PHONE_NUMBER")
 
-# Firebase credentials
-FIREBASE_KEY_FILE = os.getenv("FIREBASE_KEY_FILE")  # Path to firebase_key.json
-
-# Daraja URLs
-ACCESS_TOKEN_URL = "https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials"
-STK_PUSH_URL = "https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest"
+# Firebase Credentials
+FIREBASE_KEY_FILE = os.getenv("FIREBASE_KEY_FILE")
 
 # Initialize Firebase
 cred = credentials.Certificate(FIREBASE_KEY_FILE)
 firebase_admin.initialize_app(cred)
 db = firestore.client()
 
-# Initialize Africa's Talking
-africastalking.initialize(AT_USERNAME, AT_API_KEY)
-sms = africastalking.SMS
+# Initialize Twilio client
+twilio_client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
+
+# Daraja URLs
+ACCESS_TOKEN_URL = "https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials"
+STK_PUSH_URL = "https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest"
 
 # Pydantic model
 class DonationRequest(BaseModel):
@@ -142,14 +142,15 @@ async def mpesa_callback(request: Request):
     db.collection('donations').add(donation_record)
     print("Donation record saved to Firebase:", donation_record)
 
-    # Send SMS confirmation
+    # Send SMS confirmation using Twilio
     try:
-        response = sms.send(
-            f"Thank you for donating KES {mpesa_data.get('Amount')} to Jogoo CBO! Receipt: {mpesa_data.get('MpesaReceiptNumber')}.",
-            [f"+{mpesa_data.get('PhoneNumber')}"]
+        twilio_client.messages.create(
+            body=f"Thank you for donating KES {mpesa_data.get('Amount')} to Jogoo CBO! Receipt: {mpesa_data.get('MpesaReceiptNumber')}.",
+            from_=TWILIO_PHONE_NUMBER,
+            to=f"+{mpesa_data.get('PhoneNumber')}"
         )
-        print("SMS sent successfully:", response)
+        print("Twilio SMS sent successfully")
     except Exception as e:
-        print("Failed to send SMS:", e)
+        print("Failed to send Twilio SMS:", e)
 
-    return {"message": "Callback received, saved, and SMS sent successfully"}
+    return {"message": "Callback received, saved, and SMS sent via Twilio successfully"}
