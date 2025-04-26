@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "jasiri-health-bot",
+  "private_key_id": "3960390d2a489067353afa22103649f86ae17e50",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC7FEDqWMgr1sQ2\nqZXNK9za3O8btHC/q6SUNg/+JZsJGkP9Z7/RLq1g2jc08swxLnbKVhkeqwChoO8F\n5Kaw6dQFIx2BblOxCrqBt//EXjw4OYwvCpxKabvaHoZOFqG3Fa91baaARf6buwrO\npOiSq2R7pbjxY1h7+s47eH/OsRB2YG5BoPSdHF2wWOBjQYv8JoVTndkRyo18646U\noHnyyse4xBBFPnoxzbZrII4GNla+MTcFjnE4hw4/4dZDRRmDP9b4xH5WavIxQrfA\nyoeA4b31NcQn5OA1U2pqEQjMQWqJD4m5s/nDFf9S1+vYdM1pbg2eL3xdDBEjQhzB\nK8U7opeNAgMBAAECggEAOmmthz6nacDKTUMQShrK/++CHUVu+vnuDnT+81zslqAD\n4Ki3ZOpNKnOYT0kMZsLaRn0xpLjCHrVwTIfDYHPyRpRbTyGSsjHmYECCdN7zsJ6P\nXdTTTgzLoeRsDQ/V+KOlwGW3WlAAmsGBM1qcX8dyPYVWRNC/PR7nq/wI9BGnUT5q\n0mP8lZ/z8usNu/e2urDc7k15oox8uES3GtO10U6BZNqtNWESz3QLahGlWfu5b5ww\nKtZRK2lIwAKUoOj+45BkTOySjTThqmsIZ1iwYY2Z+dPx73E+Z5DQacADJ/W1ojFw\nKF/Fd6F8uKgslZYGgxgPK6jMjGQTAMg5us8A31VjxQKBgQD7etnD+Kske7OW8Sb4\nEyjRNhHLSA+WjrFgwgX4JHqSA+2u+mPJ06gnkssGX5jZegQxQYAERXfvelcjyXl3\nItpv9wSw3RRUL7GZymFnSfLdsGMzS6gteG+B2CofXFUlBkODv6jO3jOiiZwYLlIB\nMNWlCuDi548T9LYV3aMfm1LEOwKBgQC+cRJj5vpxVC8uQqipeRQG3potyg3XrsTm\n6DLjUvtePEyKM15lWVHL3onbBlGVZQhoTBz80oBZhEiSYWenX6q/xs1IapIX2oAu\nIju916d8NJXEstAfWvsz/OxK4YTXO6yuMZcywhGCemHOKbv2Decbpw+x06iblxGB\nnYEFBrS+1wKBgEP2/8OnARnrFK5GnnGNPArOwiBeaVgXWHj99v8JXNb5mNMheLaj\nLV8EnToru/OKtndZbG+7Fp7yQXq6iMlZ8g8wg2QJW+UkvqsBtzFjGvAvK6BBYkJn\nujstYLT5D0niV3zT35uJEgtrhXRDkIYh3JuuRPkN++04xb1DGUMBh2zhAoGBAIfk\njZfmIT2vMb+T52CPOoAwZdpYvQnz9yNB+9YEx8QVyRQw1aICW4Dbeolk9+Bf6ODr\ntx+dYeL+pv51LQ7dEC2qwZ90FG2bCC5jVTgBY80YhOqIIkTNmkUdrMs+I5mmRnFC\nh767ht0RUStY0nwgrZIo4uUkwMLNyLsx1fftMhqfAoGALHUqXt4+a+J1RtMwV7Bo\n4zp9FWOz7UyLJSJj76ELc8TEsgaDqjSottS+x70Q5Hnz4i0XEaJjUYMkWVchCGGT\npoURdGNdRx6vI+MZ4+N4z193bptMf31TBl20EMROEQfs9LDXpEJEhC748zqB9fG7\nPtQw6Y3l1mbDAQrgb69jpy8=\n-----END PRIVATE KEY-----\n",
+  "client_email": "firebase-adminsdk-fbsvc@jasiri-health-bot.iam.gserviceaccount.com",
+  "client_id": "102420860383930844734",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-fbsvc%40jasiri-health-bot.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}
