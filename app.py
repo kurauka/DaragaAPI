@@ -40,6 +40,12 @@ class DonationRequest(BaseModel):
     amount: int
     message: str = ""
 
+@app.get("/", tags=["Root"])
+async def root():
+    return {
+        "message": "Welcome to Daraja API",
+    }
+
 @app.post("/donate")
 async def donate(data: DonationRequest):
     # 1. Get Access Token
