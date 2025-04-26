@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: jogoo-donations-backend
+    env: python
+    plan: free
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "uvicorn main:app --host 0.0.0.0 --port 10000"
+    envVars:
+      - key: CONSUMER_KEY
+        value: your_safaricom_consumer_key_here
+      - key: CONSUMER_SECRET
+        value: your_safaricom_consumer_secret_here
+      - key: PASSKEY
+        value: your_safaricom_passkey_here
+      - key: SHORTCODE
+        value: 174379
+      - key: CALLBACK_URL
+        value: https://your-app-name.onrender.com/mpesa-callback
+      - key: TWILIO_ACCOUNT_SID
+        value: your_twilio_account_sid_here
+      - key: TWILIO_AUTH_TOKEN
+        value: your_twilio_auth_token_here
+      - key: TWILIO_PHONE_NUMBER
+        value: your_twilio_phone_number_here
+      - key: FIREBASE_KEY_FILE
+        value: firebase_key.json
