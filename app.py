@@ -1,3 +1,5 @@
+# main.py
+
 from fastapi import FastAPI, HTTPException, Request
 from pydantic import BaseModel
 from datetime import datetime
@@ -9,7 +11,6 @@ from fastapi.middleware.cors import CORSMiddleware
 import firebase_admin
 from firebase_admin import credentials, firestore
 from twilio.rest import Client
-from fastapi.responses import JSONResponse
 
 # Load environment variables
 load_dotenv()
@@ -25,34 +26,27 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Safaricom Daraja Credentials
+# Credentials
 CONSUMER_KEY = os.getenv("CONSUMER_KEY")
 CONSUMER_SECRET = os.getenv("CONSUMER_SECRET")
 PASSKEY = os.getenv("PASSKEY")
 SHORTCODE = os.getenv("SHORTCODE")
 CALLBACK_URL = os.getenv("CALLBACK_URL")
-
-# Twilio Credentials
 TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID")
 TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN")
 TWILIO_PHONE_NUMBER = os.getenv("TWILIO_PHONE_NUMBER")
-
-# Firebase Credentials
 FIREBASE_KEY_FILE = os.getenv("FIREBASE_KEY_FILE")
 
-# Initialize Firebase
+# Initialize Firebase and Twilio
 cred = credentials.Certificate(FIREBASE_KEY_FILE)
 firebase_admin.initialize_app(cred)
 db = firestore.client()
-
-# Initialize Twilio client
 twilio_client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
 
 # Daraja URLs
 ACCESS_TOKEN_URL = "https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials"
 STK_PUSH_URL = "https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest"
 
-# Pydantic model
 class DonationRequest(BaseModel):
     name: str
     phone: str  # Expect format 7XXXXXXXX
@@ -70,14 +64,10 @@ async def donate(data: DonationRequest):
         auth = (CONSUMER_KEY, CONSUMER_SECRET)
         token_resp = await client.get(ACCESS_TOKEN_URL, auth=auth)
 
-        if token_resp.status_code != 200:
-            print("Access token response:", token_resp.text)
-            raise HTTPException(status_code=500, detail="Failed to authenticate with Safaricom")
+    if token_resp.status_code != 200:
+        raise HTTPException(status_code=500, detail="Failed to authenticate with Safaricom")
 
-        access_token = token_resp.json().get('access_token')
-        if not access_token:
-            print("Access token missing from response:", token_resp.text)
-            raise HTTPException(status_code=500, detail="Access token not found in Safaricom response.")
+    access_token = token_resp.json().get('access_token')
 
     # 2. Generate Password
     timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
@@ -109,61 +99,71 @@ async def donate(data: DonationRequest):
         stk_resp = await client.post(STK_PUSH_URL, headers=headers, json=payload)
 
     if stk_resp.status_code != 200:
-        print("Safaricom STK Push Error Response:", stk_resp.text)
         raise HTTPException(status_code=500, detail=f"Safaricom STK Push failed: {stk_resp.text}")
 
-    print("STK Push Initiated Successfully:", stk_resp.json())
-    return stk_resp.json()
+    stk_data = stk_resp.json()
+    checkout_request_id = stk_data.get("CheckoutRequestID")
+
+    # 5. Save pending donation in Firestore
+    if checkout_request_id:
+        donation_record = {
+            "name": data.name,
+            "phone": f"254{data.phone}",
+            "amount": data.amount,
+            "checkout_request_id": checkout_request_id,
+            "status": "Pending",
+            "created_at": datetime.utcnow().isoformat()
+        }
+        db.collection('donations').add(donation_record)
+
+    return stk_data
 
 @app.post("/mpesa-callback")
 async def mpesa_callback(request: Request):
     body = await request.json()
     print("M-Pesa Callback Received:", body)
 
-    # Extract important metadata
-    callback_metadata = body.get('Body', {}).get('stkCallback', {}).get('CallbackMetadata', {}).get('Item', [])
+    stk_callback = body.get('Body', {}).get('stkCallback', {})
+    if stk_callback.get('ResultCode') != 0:
+        print("Payment failed or cancelled.")
+        return {"message": "Payment failed or cancelled"}
+
+    callback_metadata = stk_callback.get('CallbackMetadata', {}).get('Item', [])
     mpesa_data = {item['Name']: item.get('Value') for item in callback_metadata}
 
-    if not mpesa_data:
-        print("No Callback Metadata Found")
+    checkout_request_id = stk_callback.get("CheckoutRequestID")
+
+    if not mpesa_data or not checkout_request_id:
         return {"message": "No payment metadata found"}
 
-    # Prepare document to save
-    donation_record = {
-        "amount": mpesa_data.get("Amount"),
-        "phone": mpesa_data.get("PhoneNumber"),
-        "mpesa_receipt_number": mpesa_data.get("MpesaReceiptNumber"),
-        "transaction_date": mpesa_data.get("TransactionDate"),
-        "created_at": datetime.utcnow().isoformat()
-    }
+    # Find pending donation by checkout_request_id
+    donations_ref = db.collection('donations')
+    query = donations_ref.where('checkout_request_id', '==', checkout_request_id).limit(1).stream()
 
-    # Save to Firestore
-    db.collection('donations').add(donation_record)
-    print("Donation record saved to Firebase:", donation_record)
+    doc_found = False
+    for doc in query:
+        doc_found = True
+        doc.reference.update({
+            "status": "Paid",
+            "mpesa_receipt_number": mpesa_data.get("MpesaReceiptNumber"),
+            "transaction_date": mpesa_data.get("TransactionDate"),
+            "amount": mpesa_data.get("Amount"),
+            "phone": mpesa_data.get("PhoneNumber")
+        })
+        print(f"Donation updated: {doc.id}")
 
-    # Send SMS confirmation using Twilio
-    try:
-        twilio_client.messages.create(
-            body=f"Thank you for donating KES {mpesa_data.get('Amount')} to Jogoo CBO! Receipt: {mpesa_data.get('MpesaReceiptNumber')}.",
-            from_=TWILIO_PHONE_NUMBER,
-            to=f"+{mpesa_data.get('PhoneNumber')}"
-        )
-        print("Twilio SMS sent successfully")
-    except Exception as e:
-        print("Failed to send Twilio SMS:", e)
+        # Send SMS confirmation
+        try:
+            twilio_client.messages.create(
+                body=f"Thank you for donating KES {mpesa_data.get('Amount')} to Jogoo CBO! Receipt: {mpesa_data.get('MpesaReceiptNumber')}.",
+                from_=TWILIO_PHONE_NUMBER,
+                to=f"+{mpesa_data.get('PhoneNumber')}"
+            )
+            print("Twilio SMS sent successfully")
+        except Exception as e:
+            print("Failed to send Twilio SMS:", e)
 
-    return {"message": "Callback received, saved, and SMS sent via Twilio successfully"}
+    if not doc_found:
+        print("No matching pending donation found for callback.")
 
-@app.get("/donations")
-async def get_donations():
-    try:
-        donations = []
-        docs = db.collection('donations').stream()
-        for doc in docs:
-            donation = doc.to_dict()
-            donation['id'] = doc.id
-            donations.append(donation)
-        
-        return JSONResponse(content=donations)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error fetching donations: {e}")
+    return {"message": "Callback received and donation updated"}
