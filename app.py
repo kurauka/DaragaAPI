@@ -1,5 +1,3 @@
-# main.py
-
 from fastapi import FastAPI, HTTPException, Request
 from pydantic import BaseModel
 from datetime import datetime
@@ -10,7 +8,8 @@ from dotenv import load_dotenv
 from fastapi.middleware.cors import CORSMiddleware
 import firebase_admin
 from firebase_admin import credentials, firestore
-from twilio.rest import Client  # <-- Twilio import
+from twilio.rest import Client
+from fastapi.responses import JSONResponse
 
 # Load environment variables
 load_dotenv()
@@ -154,3 +153,17 @@ async def mpesa_callback(request: Request):
         print("Failed to send Twilio SMS:", e)
 
     return {"message": "Callback received, saved, and SMS sent via Twilio successfully"}
+
+@app.get("/donations")
+async def get_donations():
+    try:
+        donations = []
+        docs = db.collection('donations').stream()
+        for doc in docs:
+            donation = doc.to_dict()
+            donation['id'] = doc.id
+            donations.append(donation)
+        
+        return JSONResponse(content=donations)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching donations: {e}")
